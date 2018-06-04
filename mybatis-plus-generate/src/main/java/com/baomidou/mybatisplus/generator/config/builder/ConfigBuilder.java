@@ -15,18 +15,6 @@
  */
 package com.baomidou.mybatisplus.generator.config.builder;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.baomidou.mybatisplus.generator.InjectionConfig;
 import com.baomidou.mybatisplus.generator.config.ConstVal;
 import com.baomidou.mybatisplus.generator.config.DataSourceConfig;
@@ -41,6 +29,18 @@ import com.baomidou.mybatisplus.generator.config.po.TableInfo;
 import com.baomidou.mybatisplus.generator.config.rules.DbType;
 import com.baomidou.mybatisplus.generator.config.rules.NamingStrategy;
 import com.baomidou.mybatisplus.toolkit.StringUtils;
+
+import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * <p>
@@ -342,7 +342,19 @@ public class ConfigBuilder {
         String[] tablePrefix = config.getTablePrefix();
         String[] fieldPrefix = config.getFieldPrefix();
         for (TableInfo tableInfo : tableList) {
-            tableInfo.setEntityName(strategyConfig, NamingStrategy.capitalFirst(processName(tableInfo.getName(), strategy, tablePrefix)));
+            String entityName = tableInfo.getName();
+            if (strategy == NamingStrategy.database_annotation) {
+                //生成的实体对象名从数据库表注释中取
+                if (StringUtils.isNotEmpty(tableInfo.getComment())) {
+                    entityName = tableInfo.getComment();
+                    int firstNum = entityName.indexOf("#");
+                    int secondNum = entityName.indexOf("#", firstNum + 1);
+                    entityName = entityName.substring(firstNum + 1, secondNum);
+                } else {
+                    throw new RuntimeException("表对应注解不能为空，生成的实体对象名需用#PO#标明");
+                }
+            }
+            tableInfo.setEntityName(strategyConfig, NamingStrategy.capitalFirst(processName(entityName, strategy, tablePrefix)));
             if (StringUtils.isNotEmpty(globalConfig.getMapperName())) {
                 tableInfo.setMapperName(String.format(globalConfig.getMapperName(), tableInfo.getEntityName()));
             } else {
@@ -595,7 +607,19 @@ public class ConfigBuilder {
                 // 处理其它信息
                 field.setName(results.getString(dbQuery.fieldName()));
                 field.setType(results.getString(dbQuery.fieldType()));
-                field.setPropertyName(strategyConfig, processName(field.getName(), strategy));
+                String propertyName = field.getName();
+                if (strategy == NamingStrategy.database_annotation){
+                    propertyName = results.getString(dbQuery.fieldComment());
+                    //生成的实体对象名从数据库表注释中取
+                    if (StringUtils.isNotEmpty(propertyName)) {
+                        int firstNum = propertyName.indexOf("#");
+                        int secondNum = propertyName.indexOf("#", firstNum + 1);
+                        propertyName = propertyName.substring(firstNum + 1, secondNum);
+                    } else {
+                        throw new RuntimeException("表字段对应注解不能为空，生成的实体属性名需用##标明");
+                    }
+                }
+                field.setPropertyName(strategyConfig, processName(propertyName, strategy));
                 field.setColumnType(dataSourceConfig.getTypeConvert().processTypeConvert(field.getType()));
                 field.setComment(results.getString(dbQuery.fieldComment()));
                 if (strategyConfig.includeSuperEntityColumns(field.getName())) {

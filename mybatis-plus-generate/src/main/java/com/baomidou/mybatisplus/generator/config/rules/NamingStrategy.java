@@ -32,7 +32,11 @@ public enum NamingStrategy {
     /**
      * 下划线转驼峰命名
      */
-    underline_to_camel;
+    underline_to_camel,
+    /**
+     * 数据库注解中取，用##标明
+     */
+    database_annotation;
 
     public static String underlineToCamel(String name) {
         // 快速检查
